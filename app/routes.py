@@ -2,10 +2,14 @@ import json
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from app.logger_setup import logger
-from app.factura_electronica import facturar, consultar_comprobante
+from app.factura_electronica import facturar, consultar_comprobante, URL_WSAA_HOMO, URL_WSAA_PROD
 from app.factura_exportacion import facturar_exportacion
 from app.otel_setup import get_tracer
 from typing import Dict
+from cryptography import x509
+from datetime import datetime, timezone
+from pyafipws.wsaa import WSAA
+
 
 # Crear namespace para Flask-RESTX
 afipws_ns = Namespace('afipws', description='Operaciones de facturación AFIP')
@@ -140,6 +144,111 @@ class TestResource(Resource):
         else:
             logger.info("test")
             return {"test": "ok"}
+
+
+cert_check_response_model = afipws_ns.model('CertCheckResponse', {
+    'valido': fields.Boolean(description='Indica si el certificado es válido actualmente (localmente)'),
+    'cuit': fields.String(description='CUIT extraído del certificado'),
+    'not_before': fields.String(description='Fecha de inicio de validez'),
+    'not_after': fields.String(description='Fecha de vencimiento'),
+    'dias_restantes': fields.Integer(description='Días restantes hasta la expiración'),
+    'emisor': fields.String(description='Emisor del certificado (CA)'),
+    'sujeto': fields.String(description='Sujeto del certificado'),
+    'autenticacion_afip_ok': fields.Boolean(description='Indica si la autenticación WSAA con AFIP fue exitosa (verificación online)'),
+    'error_afip': fields.String(description='Mensaje de error si la autenticación con AFIP falló')
+})
+
+
+@afipws_ns.route('/certificado/verificar')
+class CertificadoVerificarResource(Resource):
+    @afipws_ns.doc('verificar_certificado')
+    @afipws_ns.marshal_with(cert_check_response_model)
+    def get(self):
+        """Verifica la validez local y la autenticación ante AFIP del certificado configurado."""
+        tracer = get_tracer()
+        
+        def _verificar():
+            cert_path = _afip_config.get('cert_path')
+            privatekey_path = _afip_config.get('privatekey_path')
+            production = _afip_config.get('production', False)
+            
+            # 1. Validación Local del Certificado
+            try:
+                with open(cert_path, "rb") as f:
+                    cert_data = f.read()
+                
+                cert = x509.load_pem_x509_certificate(cert_data)
+                
+                # Obtener fechas de validez (soportando versiones de cryptography con _utc)
+                not_before = getattr(cert, 'not_valid_before_utc', cert.not_valid_before)
+                not_after = getattr(cert, 'not_valid_after_utc', cert.not_valid_after)
+                
+                # Asegurar timezone-aware para la comparación si corresponde
+                now = datetime.now(timezone.utc) if not_before.tzinfo else datetime.now()
+                
+                valido_local = not_before <= now <= not_after
+                dias_restantes = (not_after - now).days
+                
+                # Extraer CUIT y detalles
+                sujeto_str = cert.subject.rfc4514_string()
+                emisor_str = cert.issuer.rfc4514_string()
+                
+                # Intentar extraer el CUIT de los atributos del Subject
+                cuit_extraido = "No encontrado"
+                for attribute in cert.subject:
+                    oid_str = attribute.oid.dotted_string
+                    # OID 2.5.4.5 es serialNumber (donde AFIP suele guardar el CUIT como CUIT 20XXXXXXXX9)
+                    if oid_str == "2.5.4.5":
+                        cuit_extraido = attribute.value
+                        break
+                    # OID 2.5.4.3 es commonName
+                    elif oid_str == "2.5.4.3" and "CUIT" in attribute.value:
+                        cuit_extraido = attribute.value
+                        break
+                        
+            except Exception as e:
+                logger.error(f"Error al analizar el certificado localmente: {e}")
+                afipws_ns.abort(500, f"Error al leer/analizar el archivo de certificado: {str(e)}")
+
+            # 2. Validación Online (Autenticación WSAA ante AFIP)
+            autenticacion_afip_ok = False
+            error_afip = None
+            
+            try:
+                URL_WSAA = URL_WSAA_PROD if production else URL_WSAA_HOMO
+                wsaa = WSAA()
+                # Intenta obtener un Ticket de Acceso (TA) para el servicio 'wsfe'
+                ta = wsaa.Autenticar(
+                    "wsfe", cert_path, privatekey_path, wsdl=URL_WSAA, cache="", debug=False
+                )
+                if ta:
+                    autenticacion_afip_ok = True
+            except Exception as auth_error:
+                logger.warning(f"Fallo en la autenticación online con AFIP: {auth_error}")
+                error_afip = str(auth_error)
+
+            return {
+                'valido': valido_local,
+                'cuit': cuit_extraido,
+                'not_before': not_before.isoformat(),
+                'not_after': not_after.isoformat(),
+                'dias_restantes': dias_restantes,
+                'emisor': emisor_str,
+                'sujeto': sujeto_str,
+                'autenticacion_afip_ok': autenticacion_afip_ok,
+                'error_afip': error_afip
+            }
+
+        if tracer:
+            with tracer.start_as_current_span("verificar_certificado_endpoint") as span:
+                span.set_attribute("endpoint", "/certificado/verificar")
+                span.set_attribute("method", "GET")
+                res = _verificar()
+                span.set_attribute("cert.valido_local", res['valido'])
+                span.set_attribute("cert.autenticacion_afip_ok", res['autenticacion_afip_ok'])
+                return res
+        else:
+            return _verificar()
 
 
 @afipws_ns.route('/facturador_exportacion')

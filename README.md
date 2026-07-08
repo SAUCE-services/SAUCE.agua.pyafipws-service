@@ -1,11 +1,9 @@
 # sauce.agua.pyafipws-service
 
-[![Build and Push Docker Image](https://github.com/dqmdz/pyafipws_endpoint_eureka/actions/workflows/deploy.yml/badge.svg)](https://github.com/dqmdz/pyafipws_endpoint_eureka/actions/workflows/deploy.yml)
-
 forked
 
 [![Build and Push Docker Image](https://github.com/SAUCE-services/SAUCE.agua.pyafipws-service/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/SAUCE-services/SAUCE.agua.pyafipws-service/actions/workflows/deploy.yml)
-# pyafipws_endpoint_consul
+# pyafipws_endpoint_discovery
 
 [![Build and Push Docker Image](https://github.com/dqmdz/pyafipws_endpoint_discovery/actions/workflows/deploy.yml/badge.svg)](https://github.com/dqmdz/pyafipws_endpoint_discovery/actions/workflows/deploy.yml)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
@@ -35,7 +33,7 @@ Servicio REST basado en [pyafipws v2025.05.05](https://github.com/dqmdz/pyafipws
 
 ## Requisitos
 
-- Python 3.11
+- Python 3.11+ (3.12 y 3.13 también soportados)
 - Docker y Docker Compose
 - Certificados AFIP válidos (`.crt` y `.key`)
 - CUIT válido para facturación
@@ -63,7 +61,7 @@ Servicio REST basado en [pyafipws v2025.05.05](https://github.com/dqmdz/pyafipws
 ### Desarrollo local
 
 ```bash
-docker-compose -f docker-compose.yml.example up
+docker-compose up
 ```
 
 ### Producción
@@ -107,8 +105,6 @@ La documentación Swagger incluye:
 - Modelos de datos con ejemplos
 - Interfaz interactiva para probar los endpoints
 - Códigos de respuesta y manejo de errores
-
-📖 **Guía completa de Swagger**: [docs/SWAGGER_GUIDE.md](docs/SWAGGER_GUIDE.md)
 
 ## API Endpoints
 
@@ -201,11 +197,33 @@ Consulta un comprobante electrónico ya emitido.
 
 Endpoint de prueba para verificar el estado del servicio.
 
+### GET /api/afipws/certificado/verificar
+
+Verifica la validez local del certificado AFIP y la autenticación online contra WSAA.
+
+**Respuesta Exitosa (200 OK):**
+```json
+{
+  "valido": true,
+  "cuit": "CUIT 20XXXXXXXX9",
+  "not_before": "2024-01-01T00:00:00",
+  "not_after": "2025-12-31T23:59:59",
+  "dias_restantes": 180,
+  "emisor": "CN=AFIP CA",
+  "sujeto": "CN=...",
+  "autenticacion_afip_ok": true,
+  "error_afip": null
+}
+```
+
 ## Ejemplo de uso con curl
 
 ```bash
 # Probar el endpoint de test
 curl -X GET "http://localhost:5086/api/afipws/test"
+
+# Verificar el estado del certificado AFIP
+curl -X GET "http://localhost:5086/api/afipws/certificado/verificar"
 
 # Consultar un comprobante existente
 curl -X GET "http://localhost:5086/api/afipws/consulta_comprobante?tipo_cbte=6&punto_vta=34&cbte_nro=100"
@@ -252,11 +270,6 @@ curl -X POST "http://127.0.0.1:5000/api/afipws/facturador_exportacion" \
     "tipo_expo": 1
   }'
 ```
-
-## Ejemplos y Documentación
-
-- 📚 [Guía de Swagger](docs/SWAGGER_GUIDE.md) - Documentación completa de la API
-- 🚀 [Ejemplo de uso](examples/api_usage.py) - Script de ejemplo para probar la API
 
 ## Licencia
 

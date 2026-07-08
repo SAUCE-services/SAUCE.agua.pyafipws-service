@@ -1,0 +1,41 @@
+sequenceDiagram
+    participant C as Cliente
+    participant R as app.routes
+    participant CRYPTO as cryptography
+    participant WSAA as pyafipws.wsaa
+    participant A as AFIP
+
+    C->>R: GET /api/afipws/certificado/verificar
+    activate R
+
+    Note over R: 1. Validación Local del Certificado
+    R->>CRYPTO: load_pem_x509_certificate(cert_data)
+    activate CRYPTO
+    CRYPTO-->>R: Certificado X.509 parseado
+    deactivate CRYPTO
+
+    Note over R: Verificar not_before / not_after
+    Note over R: Extraer CUIT (OID 2.5.4.5)
+    Note over R: Extraer emisor y sujeto
+
+    alt Certificado Válido (fechas correctas)
+        Note over R: valido = True, dias_restantes calculados
+
+        Note over R: 2. Validación Online (WSAA)
+        R->>WSAA: Autenticar("wsfe", cert_path, key_path, wsdl)
+        activate WSAA
+        WSAA->>A: Solicitar Ticket de Acceso (TA)
+        A-->>WSAA: Token de Acceso
+        WSAA-->>R: autenticacion_afip_ok = True
+        deactivate WSAA
+    else Certificado Vencido o Inválido
+        Note over R: valido = False
+    end
+
+    alt Error de Autenticación AFIP
+        Note over R: error_afip = mensaje de error
+        Note over R: autenticacion_afip_ok = False
+    end
+
+    R-->>C: {valido, cuit, not_before, not_after, ...}
+    deactivate R
