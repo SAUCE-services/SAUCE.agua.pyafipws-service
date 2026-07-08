@@ -38,7 +38,7 @@ def setup_otel() -> Optional[trace.Tracer]:
         # Configurar el recurso con información del servicio
         resource = Resource.create({
             "service.name": "pyafipws-service",
-            "service.version": "1.0.0",
+            "service.version": "2.6.0",
             "deployment.environment": "production" if os.getenv('PRODUCTION', 'FALSE').upper() == 'TRUE' else "development"
         })
         
