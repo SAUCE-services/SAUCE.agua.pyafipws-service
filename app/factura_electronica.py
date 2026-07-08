@@ -118,6 +118,7 @@ def facturar(json_data: Dict[str, Any], production: bool = False) -> Dict[str, A
             imp_total=json_data.get("total"),
             imp_neto=round(json_data.get("neto", 0) + json_data.get("neto105", 0), 2),
             imp_iva=round(json_data.get("iva", 0) + json_data.get("iva105", 0), 2),
+            imp_op_ex=round(json_data.get("exento", 0), 2),
             asociado_tipo_afip=json_data.get("asociado_tipo_afip", None),
             asociado_punto_venta=json_data.get("asociado_punto_venta", None),
             asociado_numero_comprobante=json_data.get("asociado_numero_comprobante", None),
