@@ -22,6 +22,7 @@ factura_model = afipws_ns.model('Factura', {
     'total': fields.Float(required=True, description='Importe total', example=1210.0),
     'id_condicion_iva': fields.Integer(required=True, description='ID de condición IVA del receptor', example=1),
     'neto': fields.Float(description='Importe neto gravado', example=1000.0),
+    'exento': fields.Float(description='Importe exento', example=0.0),
     'iva': fields.Float(description='Importe IVA 21%', example=210.0),
     'neto105': fields.Float(description='Importe neto gravado 10.5%', example=0.0),
     'iva105': fields.Float(description='Importe IVA 10.5%', example=0.0),

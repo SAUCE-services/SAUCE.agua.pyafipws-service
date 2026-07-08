@@ -2,6 +2,20 @@
 
 Todos los cambios notables en este proyecto serán documentados en este archivo.
 
+## [2.5.0] - 2026-07-08
+
+### Nuevas características
+- **Importe Exento**: Se agregó soporte para el campo `exento` (importe exento) en la facturación electrónica, mapeándolo al campo `imp_op_ex` del comprobante AFIP.
+
+### Mejoras
+- **Documentación Swagger**: Se añadió el campo `exento` al modelo de datos de facturación con descripción y ejemplo.
+- **Documentación API**: Se actualizó la documentación del README para incluir el nuevo campo `exento`.
+
+### Cambios técnicos
+- Actualizado `app/factura_electronica.py` para incluir `imp_op_ex` en la creación del comprobante.
+- Actualizado `app/routes.py` para exponer el campo `exento` en el modelo Swagger.
+- Actualizada versión de la API en `app/service.py` a 2.5.0.
+
 ## [2.4.0] - 2026-01-01
 
 ### Nuevas características

@@ -1,6 +1,6 @@
 # pyafipws_endpoint_consul
 
-[![Build and Push Docker Image](https://github.com/dqmdz/pyafipws_endpoint_eureka/actions/workflows/deploy.yml/badge.svg)](https://github.com/dqmdz/pyafipws_endpoint_eureka/actions/workflows/deploy.yml)
+[![Build and Push Docker Image](https://github.com/dqmdz/pyafipws_endpoint_discovery/actions/workflows/deploy.yml/badge.svg)](https://github.com/dqmdz/pyafipws_endpoint_discovery/actions/workflows/deploy.yml)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
@@ -118,6 +118,7 @@ Emite un comprobante electrónico.
 - `id_condicion_iva`: ID de condición IVA del receptor
 
 **Campos opcionales:**
+- `exento`: Importe exento
 - `neto`: Importe neto gravado
 - `iva`: Importe IVA 21%
 - `neto105`: Importe neto gravado 10.5%
@@ -212,6 +213,7 @@ curl -X POST "http://localhost:5086/api/afipws/facturador" \
     "documento": "20123456789",
     "total": 1210.0,
     "id_condicion_iva": 1,
+    "exento": 0.0,
     "neto": 1000.0,
     "iva": 210.0
   }'
