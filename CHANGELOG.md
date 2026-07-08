@@ -2,6 +2,21 @@
 
 Todos los cambios notables en este proyecto serán documentados en este archivo.
 
+## [2.6.0] - 2026-07-08
+
+### Nuevas características
+- **Verificación de Certificados AFIP**: Se agregó un nuevo endpoint `GET /api/afipws/certificado/verificar` que permite:
+  - Validación local del certificado X.509 (fechas de validez, extracción de CUIT, emisor y sujeto).
+  - Verificación online de autenticación WSAA contra AFIP (production/homologación).
+  - Integración con OpenTelemetry para trazabilidad completa.
+- **Endpoint de Verificación de Certificados**: Nuevo recurso REST (`CertificadoVerificarResource`) con modelo de respuesta `CertCheckResponse` documentado en Swagger.
+
+### Cambios técnicos
+- Actualizado `app/routes.py` con nuevo endpoint y modelo Swagger.
+- Añadidas importaciones de `cryptography.x509`, `pyafipws.wsaa.WSAA` y constantes `URL_WSAA_HOMO`/`URL_WSAA_PROD`.
+- Actualizada versión de la API en `app/service.py` a 2.6.0.
+- Actualizada versión del recurso OpenTelemetry en `app/otel_setup.py`.
+
 ## [2.5.0] - 2026-07-08
 
 ### Nuevas características
